@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 .. module:: zlel_main.py
-    :synopsis:
+    :synopsis: Main module for circuit analysis with automatic
+               analysis selection
 
 .. moduleauthor:: Aitor Lavin (aitorlavin02@gmail.com)
                   Unax Arregi (arregiunax@gmail.com)
-
-
 """
 
 import zlel.zlel_p1 as zl1
@@ -19,13 +18,9 @@ import time
 import sys
 import os
 
-"""
-https://stackoverflow.com/questions/419163/what-does-if-name-main-do
-https://stackoverflow.com/questions/19747371/
-python-exit-commands-why-so-many-and-when-should-each-be-used
-"""
 if __name__ == "__main__":
     start = time.perf_counter()
+
     if len(sys.argv) > 1:
         filename = sys.argv[1]
     else:
@@ -37,135 +32,90 @@ if __name__ == "__main__":
     cir_nd_extended = np.array(modified_results[1])
     cir_ctr_extended = np.array(modified_results[3])
     cir_val_extended = np.array(modified_results[2])
+
     nodes = zl1.get_nodes(cir_nd)
     b = zl1.get_branches(cir_el)
     n = zl1.get_number_of_nodes(nodes)
     el_num = zl1.get_elements(cir_el)
     incidence_matrix = zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended)
-    zl1.erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
-             cir_val_extended, incidence_matrix, nodes, b)
-    iraulia = zl2.get_iraulia(incidence_matrix)
 
-    "INTZIDENTZI MATRIZE MURRIZTUA"
+    zl1.erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
+                 cir_val_extended, incidence_matrix, nodes, b)
 
     A = zl1.get_incidence_murriztua(incidence_matrix, n)
-
-    "INTZIDENTZI MATRIZE MURRIZTUAREN IRAULIA"
-
     At = zl2.get_iraulia(A)
 
-    "PRAKTIKA HONETAKO FUNTZIOEN BALIOAK LORTU"
+    diodo_lista, transistore_lista = zl3.elementu_ezlinealak(
+        b, cir_el_extended)
+    capacitor_lista, inductor_lista = zl4.elementu_dinamikoak(
+        b, cir_el_extended)
 
-    m = zl2.getMatrixes(b, cir_el_extended, cir_val_extended, cir_ctr_extended)
-    M = m[0]
-    N = m[1]
-    Us = m[2]
-    izena=os.path.basename(filename)
-    if izena[0]=="0":
-        zl1.print_cir_info(cir_el_extended, cir_nd_extended, b, n, nodes, el_num)
+    has_nonlinear = diodo_lista or transistore_lista
+    has_dynamic = capacitor_lista or inductor_lista
+
+    sorgailua, hasiera, amaiera, pausua, a, pr, op = zl2.tr_dc_parametroak(
+        filename)
+
+    if pr == ".pr":
+        zl1.print_cir_info(cir_el_extended, cir_nd_extended, b, n,
+                           nodes, el_num)
         print("\nIncidence Matrix: ")
         print(incidence_matrix)
-        zl1.erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
-             cir_val_extended, incidence_matrix, nodes, b)
 
-    elif izena[0]=="1":
+    base_dir = os.path.dirname(filename)
+    sims_dir = os.path.join(base_dir, "sims")
+    os.makedirs(sims_dir, exist_ok=True)
+    output_csv = os.path.join(sims_dir,
+                              os.path.splitext(os.path.basename(filename))[0])
 
-        "w(T)"
 
-        w = zl2.w_matrizea(nodes, b)
+    if op == ".op":
+        m = zl2.getMatrixes(b, cir_el_extended, cir_val_extended,
+                            cir_ctr_extended)
+        M, N, Us = m[0], m[1], m[2]
 
-        "IDENTITATE MATRIZEA"
+        if has_dynamic:
+            Vc_prev = np.zeros(b)
+            Il_prev = np.zeros(b)
+            M, N, Us, Vc_prev, Il_prev = zl4.dynamic_NR(
+                b, cir_el_extended, cir_val_extended, pausua, Vc_prev, Il_prev,
+                capacitor_lista, inductor_lista, M, N, Us
+            )
 
-        identitate_matrizea = zl2.get_identitate_matrizea(M, At)
+        if has_nonlinear:
+            sol = zl3.Newton_Raphson(M, N, Us, A, At, n, b, cir_val_extended,
+                                     diodo_lista, transistore_lista)
+        else:
+            T = zl2.get_T(A, At, M, N, Us, b, n)
+            U = zl2.get_U(A, b, n, Us)
+            zl2.SingularMatrix(T, U)
+            sol = np.linalg.solve(T, U)
 
-        "T ETA U"
+        zl2.print_solution(sol, b, n)
 
-        T = zl2.get_T(A, At, M, N, Us, b, n)
-        U = zl2.get_U(A, b, n, Us)
-
-        "ERROREAK AURKITU"
-
-        zl1.erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
-                    cir_val_extended, incidence_matrix, nodes, b)
-
-        "PRAKTIKA HONETAKO ERROREA (SINGULAR MATRIX)"
-
-        zl2.SingularMatrix(T, U)
-
-        "SOLUZIOA"
-
-        sol = np.linalg.solve(T, U)
-        
-
-        "sIMULAZIOAK"
-        sorgailua, hasiera, amaiera, pausua, a , pr , op= zl2.tr_dc_parametroak(filename)
-        if pr==".pr":
-            zl1.print_cir_info(cir_el_extended, cir_nd_extended, b, n, nodes, el_num)
-            print("\nIncidence Matrix: ")
-            print(zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended))
-
-        if op==".op":
-            zl2.print_solution(sol, b, n)
-
-        if a == ".tr" or a == ".dc":
-            # Ejecutar simulación y guardar resultados en CSV
-            output_csv = izena+".csv"
-            zl2.save_as_csv(
-                b, n, output_csv, cir_el_extended, cir_val_extended,
-                cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
-                incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
-                )
-
-            # Graficar resultado de la simulación
-            #zl2.plot_from_cvs(output_csv, "t", "e1", "Voltaje en nodo 1")
-
-    elif izena[0]=="2":
-        diodo_lista, transistore_lista = zl3.elementu_ezlinealak(b, cir_el_extended)
-        sol = zl3.Newton_Raphson(M, N, Us, A, At, n, b, cir_val_extended,
-            diodo_lista, transistore_lista)
-        
-
-        "Simulazioak"
-        sorgailua, hasiera, amaiera, pausua, a , pr, op= zl2.tr_dc_parametroak(filename)
-        if pr==".pr":
-            zl1.print_cir_info(cir_el_extended, cir_nd_extended, b, n, nodes, el_num)
-            print("\nIncidence Matrix: ")
-            print(zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended))
-
-        if op==".op":
-            zl2.print_solution(sol, b, n)
-
-        if a == ".tr" or a == ".dc":
-            # Ejecutar simulación y guardar resultados en CSV
-            output_csv = izena+".csv"
-            zl3.save_as_csv_p3(
-                b, n, output_csv, cir_el_extended, cir_val_extended,
-                cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
-                incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
-                )
-
-            # Graficar resultado de la simulación
-            #zl2.plot_from_cvs(output_csv, "t", "e1", "Voltaje en nodo 1")
-
-    elif izena[0]=="3":
-        sorgailua, hasiera, amaiera, pausua, a , pr, op= zl2.tr_dc_parametroak(filename)
-        if pr==".pr":
-            zl1.print_cir_info(cir_el_extended, cir_nd_extended, b, n, nodes, el_num)
-            print("\nIncidence Matrix: ")
-            print(zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended))
-        
-
-        # Ejecutar simulación si es transitoria o DC
-        if a == ".tr" or a == ".dc":
-            output_csv = izena+".csv"
+    if a == ".tr" or a == ".dc":
+        if sorgailua != "0":
+            output_csv += f"_{sorgailua}{a}"
+        else:
+            output_csv += a
+        if has_dynamic:
             zl4.save_as_csv_p4(
                 b, n, output_csv, cir_el_extended, cir_val_extended,
                 cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
                 incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
             )
-            
-            # Graficar resultados (ejemplo: tensión en nodo 1)
-        #zl2.plot_from_cvs(output_csv, "t", "e1", "Voltaje en nodo 1")
-    else:
-        print("Error: File name does not start with 1, 2 or 3.")
-        sys.exit(1)
+        elif has_nonlinear:
+            zl3.save_as_csv_p3(
+                b, n, output_csv, cir_el_extended, cir_val_extended,
+                cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
+                incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
+            )
+        else:
+            zl2.save_as_csv(
+                b, n, output_csv, cir_el_extended, cir_val_extended,
+                cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
+                incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
+            )
+
+        end = time.perf_counter()
+        # print(f"Elapsed time: {end - start} seconds")

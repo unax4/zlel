@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 .. module:: zlel_p4.py
-    :synopsis: Módulo para análisis de circuitos dinámicos con Euler Backward
+    :synopsis: Euler Backward erabiliz, zirkuitu dinamikoen analisia egiten
+               duen modulua.
 
 .. moduleauthor:: Aitor Lavin (aitorlavin02@gmail.com)
                   Unax Arregi (arregiunax@gmail.com)
 """
 
 import numpy as np
-import sys
-import math
 
 if __name__ == "zlel.zlel_p4":
     import zlel.zlel_p1 as zl1
@@ -24,211 +23,199 @@ else:
 
 def capacitor_NR(C, Vc_prev, h):
     """
-    Calcula los parámetros del equivalente NR de un capacitor usando Euler Backward.
-    
+
+    Kapazitore baten NR baliokidearen parametroak kalkulatzen ditu,
+    Euler Backward erabiliz.
+
     Args:
-        C: Capacitancia del condensador
-        Vc_prev: Tensión en el condensador en el paso anterior
-        h: Paso de tiempo
-        
+        C: Kondentsadorearen kapazitantzia
+        Vc_prev: Kondentsadorearen tentsioa aurreko etapan
+        h: denbora
+
     Returns:
-        gc: Conductancia equivalente
-        Ic: Fuente de corriente equivalente
+        gc: Konduktzantzia baliokidea
+        Ic: Korronte iturri baliokidea
     """
-    gc = 1 / (h / C)
+    gc = C / h
     Ic = gc * Vc_prev
     return gc, Ic
 
 
 def inductor_NR(L, Il_prev, h):
     """
-    Calcula los parámetros del equivalente NR de un inductor usando Euler Backward.
-    
+
+    Haril baten NR baliokidearen parametroak kalkulatzen ditu,
+    Euler Backward erabiliz.
+
     Args:
-        L: Inductancia del inductor
-        Il_prev: Corriente en el inductor en el paso anterior
-        h: Paso de tiempo
-        
+        L: Harilaren induktantzia
+        Il_prev: Harilaren korrontea aurreko etapan
+        h: denbora
+
     Returns:
-        gl: Conductancia equivalente
-        Il: Fuente de corriente equivalente
+        gl: Konduktzantzia baliokidea
+        Il: Korronte iturri baliokidea
     """
     gl = h / L
-    Vl = Il_prev * gl
+    Vl = Il_prev
     return gl, Vl
 
 
 def elementu_dinamikoak(b, cir_el_extended):
     """
-    Identifica elementos dinámicos (condensadores e inductores) en el circuito.
-    
+
+    Zirkuituko elemntu dinamikoa identifikatzen ditu (kondentsadore
+    eta induktoreak).
+
     Args:
-        b: Número de ramas
-        cir_el_extended: Array extendido de elementos del circuito
-        
+        b: Adar kopurua
+        cir_el_extended: Cir_el array luzatua
+
     Returns:
-        Lista con dos sublistas: [condensadores, inductores]
+        Bi subzerrenda dituen zerrenda: [kondentsadoreak, induktoreak]
     """
     capacitor_lista = []
     inductor_lista = []
-    
+
     for i in range(b):
         if cir_el_extended[i][0].lower() == "c":
             capacitor_lista.append(i)
         elif cir_el_extended[i][0].lower() == "l":
             inductor_lista.append(i)
-    
+
     return [capacitor_lista, inductor_lista]
 
 
-
-def dynamic_NR(b, cir_el_extended, cir_val_extended, h, Vc_prev, Il_prev, 
+def dynamic_NR(b, cir_el_extended, cir_val_extended, h, Vc_prev, Il_prev,
                capacitor_lista, inductor_lista, M, N, Us):
     """
-    Updates M, N, Us matrices for dynamic elements using Backward Euler.
+
+    M, N, Us matrizeak eguneratzen ditu elementu dinamikoentzat,
+    Euler Backward erabiliz.
+
+    Args:
+        b: Adar kopurua
+        cir_el_extended: Cir_el array luzatua
+        cir_val_extended: Cir_val array luzatua
+        h: denbora
+        Vc_prev: Kondentsadorearen tentsioa aurreko etapan
+        Il_prev: Harilaren korrontea aurreko etapan
+        capacitor_lista: Kondentsadoreen zerrenda
+        inductor_lista: Harilen zerrenda
+        M: np array-a M matrizearena.
+        N: np array-a N matrizearena.
+        Us: np array-a Us matrizearena.
+
+    Returns:
+        M: np array-a M matrizearena.
+        N: np array-a N matrizearena.
+        Us: np array-a Us matrizearena.
+        Vc_actual: Kondentsadorearen tentsioa etapa honetan
+        Il_actual: Harilaren korrontea etapa honetan
     """
-    # Initialize current state variables
     Vc_actual = np.zeros(b)
     Il_actual = np.zeros(b)
-    
-    # Process capacitors
+
     for j in capacitor_lista:
         C = float(cir_val_extended[j][0])
-        Vc0 = float(cir_val_extended[j][1]) if len(cir_val_extended[j]) > 1 else 0.0
-        
-        # Apply initial condition if first step
+        if len(cir_val_extended[j]) > 1:
+            Vc0 = float(cir_val_extended[j][1])
+        else:
+            Vc0 = 0.0
+
         if np.all(Vc_prev == 0) and Vc0 != 0:
             Vc_prev[j] = Vc0
-            
+
         gc, Ic = capacitor_NR(C, Vc_prev[j], h)
-        M[j,j] = gc
-        N[j,j] = -1
-        Us[j] = Ic
+        M[j, j] = gc
+        N[j, j] = -1
+        Us[j, 0] = Ic
         Vc_actual[j] = Vc_prev[j]
 
-    # Process inductors - corrected implementation
     for j in inductor_lista:
         L = float(cir_val_extended[j][0])
-        Il0 = float(cir_val_extended[j][1]) if len(cir_val_extended[j]) > 1 else 0.0
-        
-        # Apply initial condition if first step
+        if len(cir_val_extended[j]) > 1:
+            Il0 = float(cir_val_extended[j][1])
+        else:
+            Il0 = 0.0
         if Il_prev[j] == 0 and Il0 != 0:
             Il_prev[j] = Il0
-            
+
         gl, Vl = inductor_NR(L, Il_prev[j], h)
-        M[j,j] = 1
-        N[j,j] = -gl
-        Us[j,0] = Vl  # Ensure Us is treated as 2D array
+        M[j, j] = -gl
+        N[j, j] = 1
+        Us[j, 0] = Vl
         Il_actual[j] = Il_prev[j]
 
     return M, N, Us, Vc_actual, Il_actual
 
+
 def save_as_csv_p4(b, n, filename, cir_el_extended, cir_val_extended,
-                  cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
-                  incidence_matrix, nodes, a, hasiera, amaiera, pausua,
-                  sorgailua):
-    """ 
-    Transient simulation with dynamic elements.
+                   cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
+                   incidence_matrix, nodes, a, hasiera, amaiera, pausua,
+                   sorgailua):
+    """
+    This function generates a csv file with the name filename.
+        First it will save a header and then, it loops and save a line in
+        csv format into the file.
+
+    Args:
+        b: Adar kopurua
+        n: Nodo kopurua
+        filename: Irteerako fitxategi izena
+        A: Inzidentzia matrize murriztua
+        At: A-ren iraulia
+        incidence_matrix: Inzidentzia matrizea
+        nodes: Nodo lista
+        a: Analisi mota (.tr o .dc)
+        hasiera: Hasiera denbora
+        amaiera: Amaiera denbora
+        pausua: Denbora pausua
+        sorgailua: Kontrol iturria
     """
     header = zl2.build_csv_header("t", b, n)
-    
-    # Identify dynamic and nonlinear elements
     capacitor_lista, inductor_lista = elementu_dinamikoak(b, cir_el_extended)
-    diodo_lista, transistore_lista = zl3.elementu_ezlinealak(b, cir_el_extended)
-    
-    # Initialize state variables
+    diodo_lista, transistore_lista = zl3.elementu_ezlinealak(b,
+                                                             cir_el_extended)
+
     Vc_prev = np.zeros(b)
     Il_prev = np.zeros(b)
-    
+
+    num_steps = int(np.ceil((amaiera - hasiera) / pausua)) + 1
     with open(filename, 'w') as file:
         print(header, file=file)
-        
-        t = hasiera
-        while t < amaiera:
-            # Get basic matrices
-            if a == ".tr":
-                m = zl2.op_tr(b, cir_el_extended, cir_val_extended,
-                              cir_ctr_extended, t)
-            elif a == ".dc":
-                m = zl2.op_dc(b, cir_el_extended, cir_val_extended,
-                              cir_ctr_extended, t, sorgailua)
-            
-            M, N, Us = m[0], m[1], m[2]
-            
-            # Check for errors
-            zl1.erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
-                         cir_val_extended, incidence_matrix, nodes, b)
-            
-            # Process dynamic elements
-            M, N, Us, Vc_prev, Il_prev = dynamic_NR(
-                b, cir_el_extended, cir_val_extended, pausua, 
-                Vc_prev, Il_prev, capacitor_lista, inductor_lista, M, N, Us)
-            
-            # Solve nonlinear system
-            sol = zl3.Newton_Raphson(M, N, Us, A, At, n, b, cir_val_extended,
-                                    diodo_lista, transistore_lista)
-            
-            # Update state variables from solution
-            for j in capacitor_lista:
-                Vc_prev[j] = float(sol[n-1 + j])  # Explicit conversion to float
-            
-            for j in inductor_lista:
-                # Correct inductor current update:
-                # i_L = (v_L * h/L) + i_L_prev
-                v_L = float(sol[n-1 + j])  # Voltage across inductor
-                Il_prev[j] = (v_L * pausua / float(cir_val_extended[j][0])) + Il_prev[j]
-            
-            # Save results
-            sol = np.insert(sol, 0, t)
-            sol_csv = ','.join(['%.9f' % num for num in sol])
-            print(sol_csv, file=file)
-            
-            t += pausua
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
-    else:
-        filename = "cirs/all/3_zlel_RC.cir"
-    
-    # Parsear el circuito
-    cir_el, cir_nd, cir_val, cir_ctr = zl1.cir_parser(filename)
-    modified_results = zl1.modify_function(cir_el, cir_nd, cir_val, cir_ctr)
-    cir_el_extended = np.array(modified_results[0])
-    cir_nd_extended = np.array(modified_results[1])
-    cir_ctr_extended = np.array(modified_results[3])
-    cir_val_extended = np.array(modified_results[2])
-    
-    # Obtener información básica del circuito
-    nodes = zl1.get_nodes(cir_nd)
-    b = zl1.get_branches(cir_el)
-    n = zl1.get_number_of_nodes(nodes)
-    el_num = zl1.get_elements(cir_el)
-    
-    # Construir matrices
-    incidence_matrix = zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended)
-    A = zl1.get_incidence_murriztua(incidence_matrix, n)
-    At = zl2.get_iraulia(A)
-    
-    # Identificar elementos dinámicos
-    capacitor_lista, inductor_lista = elementu_dinamikoak(b, cir_el_extended)
-    
-    # Obtener parámetros de simulación
-    sorgailua, hasiera, amaiera, pausua, a , pr, op= zl2.tr_dc_parametroak(filename)
-    
-    if pr==".pr":
-        zl1.print_cir_info(cir_el_extended, cir_nd_extended, b, n, nodes, el_num)
-        print("\nIncidence Matrix: ")
-        print(zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended))
-    
-    # Ejecutar simulación si es transitoria o DC
-    if a == ".tr" or a == ".dc":
-        output_csv = "3_zlel_arteztailea.csv"
-        save_as_csv_p4(
-            b, n, output_csv, cir_el_extended, cir_val_extended,
-            cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
-            incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
-        )
-        
-        # Graficar resultados (ejemplo: tensión en nodo 1)
-        zl2.plot_from_cvs(output_csv, "t", "e2", "Voltaje en nodo 2")
+        for step in range(num_steps):
+            t = hasiera + step * pausua
+            if abs(t - amaiera) < 1e-10 or t <= amaiera:
+                if a == ".tr":
+                    m = zl2.op_tr(b, cir_el_extended, cir_val_extended,
+                                  cir_ctr_extended, t)
+                elif a == ".dc":
+                    m = zl2.op_dc(b, cir_el_extended, cir_val_extended,
+                                  cir_ctr_extended, t, sorgailua)
+
+                M, N, Us = m[0], m[1], m[2]
+
+                zl1.erroreak(cir_nd_extended, cir_el_extended,
+                             cir_ctr_extended, cir_val_extended,
+                             incidence_matrix, nodes, b)
+
+                M, N, Us, Vc_actual, Il_actual = dynamic_NR(
+                    b, cir_el_extended, cir_val_extended, pausua,
+                    Vc_prev, Il_prev, capacitor_lista,
+                    inductor_lista, M, N, Us)
+
+                sol = zl3.Newton_Raphson(M, N, Us, A, At,
+                                         n, b, cir_val_extended,
+                                         diodo_lista, transistore_lista)
+
+                for j in capacitor_lista:
+                    Vc_prev[j] = float(sol[n-1 + j])
+
+                for j in inductor_lista:
+                    Il_prev[j] = float(sol[n-1 + b + j])
+
+                sol = np.insert(sol, 0, t)
+                sol_csv = ','.join(['%.9f' % num for num in sol])
+                print(sol_csv, file=file)

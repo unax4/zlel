@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 .. module:: zlel_main.py
-    :synopsis:
+    :synopsis: zlel_p1 moduluan egindakoari zirkuitu erresistibo linealak
+              (diodoa eta transistorea ez ditugu kontuan hartuko) ebazteko
+              gaitasuna gehituko diogu (.OP). Halaber, programa .DC eta .TR
+              (.TRAN spice-n) analisiak ere egiteko gai izango da.
 
 .. moduleauthor:: Aitor Lavin (aitorlavin02@gmail.com)
                   Unax Arregi (arregiunax@gmail.com)
@@ -19,14 +22,13 @@ if __name__ == "zlel.zlel_p2":
 else:
     import zlel_p1 as zl1
 
-"IRAULIA"
-
 
 def get_iraulia(incidence_matrix):
     """
+
     np array bat ematen du matrizearen irauliarena.
 
-    Parameters
+    Args
     ----------
     incidence_matrix : np array-a zirkuituaren intzidentzia matrizearena.
 
@@ -46,15 +48,13 @@ def get_iraulia(incidence_matrix):
     return (np_iraulia)
 
 
-"M N ETA Us LORTZEKO BEHAR DE FUNTZIOA"
-
-
 def getPosition(x, cir_el_extended):
     """
+
     cir_ctr_extended-ko x balioko elementua cir_el_extendedeko
     i-koaren berdina bada i posizioa bueltatzen du.
 
-    Parameters
+    Args
     ----------
     x : String bat cir_ctr_extended-eko elementu batena.
     cir_el_extended : cir_el array luzatua.
@@ -71,14 +71,12 @@ def getPosition(x, cir_el_extended):
             return i
 
 
-"M, N ETA Us LORTZEKO FUNTZIOA"
-
-
 def getMatrixes(b, cir_el_extended, cir_val_extended, cir_ctr_extended):
     """
+
     M, N ETA Us matrizeak lortzeko funtzioa
 
-    Parameters
+    Args
     ----------
     b : integer
         Gure zirkuituko adar kopurua.
@@ -143,12 +141,15 @@ def getMatrixes(b, cir_el_extended, cir_val_extended, cir_ctr_extended):
     return lista
 
 
-"w(t) MATRIZEA"
-
-
 def w_matrizea(nodes, b):
     """
+
     w(t) MATRIZEA lortzeko funtzioa.
+
+    Args
+    ----------
+    nodes : np array-a zirkuituko nodoekin.
+    b : Integer-a zirkuituko elementu kopuruarena.
 
     Returns
     -------
@@ -171,15 +172,13 @@ def w_matrizea(nodes, b):
     return (matriz_np)
 
 
-"IDENTITATE MATRIZEA"
-
-
 def get_identitate_matrizea(M, iraulia):
     """
+
     Matrize irauliaren errenkada kopurua eta M matrizearen zutabe kopurua duen
     matrizea bueltatzen du.
 
-    Parameters
+    Args
     ----------
     M : np array-a M matrizearena.
     iraulia : np array-a matrize irauliarena.
@@ -195,14 +194,12 @@ def get_identitate_matrizea(M, iraulia):
     return np.eye(rows_iraulia, cols_M)
 
 
-"T MATRIZEA"
-
-
 def get_T(incidence_matrix, iraulia, M, N, Us, b, n):
     """
+
     T matrizea bueltatzen du.
 
-    Parameters
+    Args
     ----------
     incidence_matrix : Intzidentzia matrizea
     iraulia : np array-a matrize irauliarena.
@@ -227,14 +224,12 @@ def get_T(incidence_matrix, iraulia, M, N, Us, b, n):
     return T
 
 
-"U MATRIZEA"
-
-
 def get_U(incidence_matrix, b, n, Us):
     """
+
     Funtzio honek U matrizea lortzeko balio du.
 
-    Parameters
+    Args
     ----------
     incidence_matrix : Intzidentzia matrizea
     b : integer-a adar kopuruarena.
@@ -253,22 +248,19 @@ def get_U(incidence_matrix, b, n, Us):
     return U
 
 
-"SINGULAR MATRIX ERROREA"
-
-
 def SingularMatrix(T, U):
     """
     Singular matrix errorea ematen bada,hau da, T-ren determinantea 0 ez bada,
     errorea gertatu dela adierazten du.
 
-    Parameters
+    Args
     ----------
     T : np array-a T matrizearena.
     U : np array-a U matrizearena.
 
     Returns
     -------
-    None.
+    String bat errorea azalduz.
 
     """
 
@@ -286,27 +278,30 @@ def print_solution(sol, b, n):
             | n: # of nodes
 
     """
-
-    # The instructor solution needs to be a numpy array of numpy arrays of
-    # float. If it is not, convert it to this format.
     if sol is None:
         pass
     else:
         if sol.dtype == np.float64:
-            np.set_printoptions(sign=' ')  # Only from numpy 1.14
+            np.set_printoptions(sign=' ')
             tmp = np.zeros([np.size(sol), 1], dtype=float)
             for ind in range(np.size(sol)):
                 tmp[ind] = np.array(sol[ind])
             sol = tmp
         print("\n========== Nodes voltage to reference ========")
         for i in range(1, n):
-            print("e" + str(i) + " = ", "[{:10.9f}]".format(sol[i-1][0]))
+            value = float(sol[i-1][0])
+            print("e" + str(i) + " = ",
+                  "[{:10.9f}]".format(0.0 if abs(value) < 1e-12 else value))
         print("\n========== Branches voltage difference ========")
         for i in range(1, b+1):
-            print("v" + str(i) + " = ", "[{:10.9f}]".format(sol[i+n-2][0]))
+            value = sol[i+n-2][0]
+            value = 0.0 if abs(value) < 1e-12 else value
+            print("v" + str(i) + " = ", "[{:10.9f}]".format(value))
         print("\n=============== Branches currents ==============")
         for i in range(1, b+1):
-            print("i" + str(i) + " = ", "[{:10.9f}]".format(sol[i+b+n-2][0]))
+            value = sol[i+b+n-2][0]
+            print("i" + str(i) + " = ",
+                  "[{:10.9f}]".format(0.0 if abs(value) < 1e-12 else value))
 
         print("\n================= End solution =================\n")
 
@@ -348,15 +343,14 @@ def save_as_csv(b, n, filename, cir_el_extended, cir_val_extended,
         | b: # of branches
         | n: # of nodes
         | filename: string with the filename (incluiding the path)
-    """
-    # Sup .tr
+    """    
     header = build_csv_header("t", b, n)
     with open(filename, 'w') as file:
         print(header, file=file)
-        # Get the indices of the elements corresponding to the sources.
-        # The freq parameter cannot be 0 this is why we choose cir_tr[0].
         t = hasiera
-        while t < amaiera:
+        num_steps = int(round((amaiera - hasiera) / pausua)) + 1
+        for i in range(num_steps):
+            t = hasiera + i * pausua
             if a == ".tr":
                 m = op_tr(b, cir_el_extended, cir_val_extended,
                           cir_ctr_extended, t)
@@ -372,16 +366,9 @@ def save_as_csv(b, n, filename, cir_el_extended, cir_val_extended,
             zl1.erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
                          cir_val_extended, incidence_matrix, nodes, b)
             sol = np.linalg.solve(T, U)
-            # for t in tr["start"],tr["end"],tr["step"]
-            # Recalculate the Us for the sinusoidal sources
-
-            # sol = np.full(2*b+(n-1), t+1, dtype=float)
-            # Inserte the time
             sol = np.insert(sol, 0, t)
-            # sol to csv
             sol_csv = ','.join(['%.9f' % num for num in sol])
             print(sol_csv, file=file)
-            t = t + pausua
 
 
 def plot_from_cvs(filename, x, y, title):
@@ -410,6 +397,27 @@ def plot_from_cvs(filename, x, y, title):
 
 def op_dc(b, cir_el_extended, cir_val_extended, cir_ctr_extended, t,
           sorgailua):
+    """
+    .DC analisia burutzen duen funtzioa. M, N eta Us matrizeak sortzen ditu
+    uneko t balioarekin, sorgailu batean aplikatuz.
+
+    Args
+    ----------
+    b : integer
+        Gure zirkuituko adar kopurua.
+    cir_el_extended : cir_el array luzatua.
+    cir_val_extended : cir_val array luzatua.
+    cir_ctr_extended : cir_ctr array luzatua.
+    t : float
+        Uneko balioa .DC azterketarako (tentsioa edo korrontea).
+    sorgailua : str
+        Baldintza aldakorra duen sorgailuaren izena.
+
+    Returns
+    -------
+    lista : list
+        M, N eta Us matrizeak bueltatzen ditu.
+    """
     M = np.zeros((b, b), dtype=float)
     N = np.zeros((b, b), dtype=float)
     Us = np.zeros((b, 1), dtype=float)
@@ -464,6 +472,26 @@ def op_dc(b, cir_el_extended, cir_val_extended, cir_ctr_extended, t,
 
 
 def op_tr(b, cir_el_extended, cir_val_extended, cir_ctr_extended, t):
+    """
+    .TRAN (transient) analisia burutzen duen funtzioa. M, N eta Us matrizeak
+    sortzen ditu uneko t balioaren arabera, denboraren araberako portaera
+    aztertzeko.
+
+    Args
+    ----------
+    b : integer
+        Gure zirkuituko adar kopurua.
+    cir_el_extended : cir_el array luzatua.
+    cir_val_extended : cir_val array luzatua.
+    cir_ctr_extended : cir_ctr array luzatua.
+    t : float
+        Denbora balioa .TRAN azterketarako.
+
+    Returns
+    -------
+    lista : list
+        M, N eta Us matrizeak bueltatzen ditu.
+    """
     M = np.zeros((b, b), dtype=float)
     N = np.zeros((b, b), dtype=float)
     Us = np.zeros((b, 1), dtype=float)
@@ -504,9 +532,9 @@ def op_tr(b, cir_el_extended, cir_val_extended, cir_ctr_extended, t):
         if cir_el_extended[i][0].lower() == "b":
             anp = float(cir_val_extended[i][0])
             maiz = float(cir_val_extended[i][1])
-            fas = float(cir_val_extended[i][2])  # Conversión a float
+            fas = float(cir_val_extended[i][2])
             m = 2 * np.pi * maiz
-            f = (np.pi / 180) * fas  # Ahora sí funciona
+            f = (np.pi / 180) * fas
             M[i, i] = 1
             Us[i] = anp * np.sin(m * t + f)
         if cir_el_extended[i][0].lower() == "y":
@@ -526,21 +554,22 @@ def op_tr(b, cir_el_extended, cir_val_extended, cir_ctr_extended, t):
 
 
 def tr_dc_parametroak(filename):
-    """ Esta función carga los valores de un archivo .cir
-    y extrae los parámetros.
+    """
+
+    Funtzio honek .cir fitxategi bateko balioak kargatzen ditu eta
+    parametroak hartzen ditu.
 
     Args:
-        filename: ruta del archivo de circuito.
+        filename: String-a fitxategiaren izenarekin
 
     Returns:
-        A tuple with (sorgailua, hasiera, amaiera, pausua).
+        A tuple with (sorgailua, hasiera, amaiera, pausua, a, pr, op).
     """
     sorgailua = None
     hasiera, amaiera, pausua = None, None, None
-    a = None  # Tipo de análisis (.tr o .dc)
+    a = None  # Analisi mota (.tr o .dc)
     pr = None  # Printa egin behar den adierazi
-    op= None  # Operazio puntua egin behar den adierazi
-    # Leer el archivo .cir
+    op = None  # Operazio puntua egin behar den adierazi
     with open(filename, 'r') as file:
         lines = file.readlines()
 
@@ -548,14 +577,13 @@ def tr_dc_parametroak(filename):
             tokens = line.strip().split()
 
             if len(tokens) < 1:
-                continue  # Omitir líneas vacías
-
-            # Detectar el análisis transitorio (.tr)
+                continue  # Linea hutsak kontuan ez
+            
             if tokens[0].lower() == ".tr" or tokens[0].lower() == ".dc":
                 a = tokens[0].lower()
-                hasiera = float(tokens[5])  # Tiempo inicial
-                amaiera = float(tokens[6])  # Tiempo final
-                pausua = float(tokens[7])   # Paso de tiempo
+                hasiera = float(tokens[5])  # Hasiera
+                amaiera = float(tokens[6])  # Amaiera
+                pausua = float(tokens[7])   # Denbora pausua
                 sorgailua = str(tokens[8])
 
             if tokens[0].lower() == ".pr":
@@ -565,92 +593,3 @@ def tr_dc_parametroak(filename):
                 op = ".op"
 
     return sorgailua, hasiera, amaiera, pausua, a, pr, op
-
-
-"""
-https://stackoverflow.com/questions/419163/what-does-if-name-main-do
-https://stackoverflow.com/questions/19747371/
-python-exit-commands-why-so-many-and-when-should-each-be-used
-"""
-
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
-    else:
-        filename = "cirs/all/1_zlel_serial_YI_VI.cir"
-
-    "1 PRAKTIKAKO BALIOAK LORTU"
-
-    cir_el, cir_nd, cir_val, cir_ctr = zl1.cir_parser(filename)
-    modified_results = zl1.modify_function(cir_el, cir_nd, cir_val, cir_ctr)
-    cir_el_extended = np.array(modified_results[0])
-    cir_nd_extended = np.array(modified_results[1])
-    cir_ctr_extended = np.array(modified_results[3])
-    cir_val_extended = np.array(modified_results[2])
-    nodes = zl1.get_nodes(cir_nd)
-    b = zl1.get_branches(cir_el)
-    n = zl1.get_number_of_nodes(nodes)
-    el_num = zl1.get_elements(cir_el)
-    incidence_matrix = zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended)
-    iraulia = get_iraulia(incidence_matrix)
-
-    "INTZIDENTZI MATRIZE MURRIZTUA"
-
-    A = zl1.get_incidence_murriztua(incidence_matrix, n)
-
-    "INTZIDENTZI MATRIZE MURRIZTUAREN IRAULIA"
-
-    At = get_iraulia(A)
-
-    "PRAKTIKA HONETAKO FUNTZIOEN BALIOAK LORTU"
-
-    m = getMatrixes(b, cir_el_extended, cir_val_extended, cir_ctr_extended)
-    M = m[0]
-    N = m[1]
-    Us = m[2]
-
-    "w(T)"
-
-    w = w_matrizea(nodes, b)
-
-    "IDENTITATE MATRIZEA"
-
-    identitate_matrizea = get_identitate_matrizea(M, At)
-
-    "T ETA U"
-
-    T = get_T(A, At, M, N, Us, b, n)
-    U = get_U(A, b, n, Us)
-
-    "ERROREAK AURKITU"
-
-    zl1.erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
-                 cir_val_extended, incidence_matrix, nodes, b)
-
-    "PRAKTIKA HONETAKO ERROREA (SINGULAR MATRIX)"
-
-    SingularMatrix(T, U)
-
-    "SOLUZIOA"
-
-    sol = np.linalg.solve(T, U)
-    
-    "sIMULAZIOAK"
-    sorgailua, hasiera, amaiera, pausua, a, pr = tr_dc_parametroak(filename)
-    # Definir archivo de salida
-
-    if pr == ".pr":
-        print_solution(sol, b, n)
-
-    if a == ".tr" or a == ".dc":
-        # Ejecutar simulación y guardar resultados en CSV
-        output_csv = "resultado.csv"
-        save_as_csv(
-            b, n, output_csv, cir_el_extended, cir_val_extended,
-            cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
-            incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
-            )
-
-        # Graficar resultado de la simulación
-        plot_from_cvs(output_csv, "t", "e1", "Voltaje en nodo 1")

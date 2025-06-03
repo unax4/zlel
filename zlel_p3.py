@@ -3,7 +3,9 @@
 """
 
 .. module:: zlel_p3.py
-    :synopsis: Put yours
+    :synopsis: Zirkuitu erresistibo ez-linealak (diodoa eta transistorea)
+               ebazteko gaitasuna gehituko diogu. Newton-Raphsonen metodoan eta
+               baliokide diskretuan oinarrituko gara.
 
 .. moduleauthor:: Aitor Lavin (aitorlavin02@gmail.com)
                   Unax Arregi (arregiunax@gmail.com)
@@ -11,7 +13,6 @@
 """
 
 import numpy as np
-import sys
 import math
 
 if __name__ == "zlel.zlel_p3":
@@ -59,14 +60,12 @@ def diode_NR(I0, nD, Vdj):
     return gd, Id
 
 
-"αF eta αR LORTZEKO FUNTZIOA"
-
-
 def alpha(beta, Ies, Ics):
     """
-   αF eta αR LORTZEKO FUNTZIOA
 
-   Parameters
+   αF eta αR lortzeko funtzioa
+
+   Args
    ----------
    beta : float bat transistorearen beta balioarekin.
    Ies : Float bat Ies korrontearen balioarena.
@@ -84,14 +83,12 @@ def alpha(beta, Ies, Ics):
     return alphaf, alphar
 
 
-"g11, g12, g21, g22, Ie, Ic balioak lortzeko funtzioa"
-
-
 def transistoreko_balioak(Ies, Ics, Vbe, Vbc, alphaf, alphar):
     """
+
     transistorearen g11, g12, g21, g22, Ie, Ic balioak lortzeko funtzioa
 
-    Parameters
+    Args
     ----------
     Ies : Float bat Ies korrontearen balioarena.
     Ics : Float bat Ics korrontearen balioarena.
@@ -124,14 +121,12 @@ def transistoreko_balioak(Ies, Ics, Vbe, Vbc, alphaf, alphar):
     return g11, g12, g21, g22, Ie, Ic
 
 
-"Aztertu ea elementu ez-linealak dauden ala ez, eta zein adarretan dauden."
-
-
 def elementu_ezlinealak(b, cir_el_extended):
     """
+
     Aztertu ea elementu ez-linealak dauden ala ez, eta zein adarretan dauden.
 
-    Parameters
+    Args
     ----------
     b : integer-a adar kopuruarena.
     cir_el_extended : cir_el array luzatua.
@@ -165,7 +160,7 @@ def Newton_Raphson(M, N, Us, A, At, n, b, cir_val_extended,
     Elementu ez-linealak baldin badaude, Newton-Raphsonen metodoa aplikatuko
     du funtzio honek.
 
-    Parameters
+    Args
     ----------
     M : np array-a M matrizearena.
     N : np array-a N matrizearena.
@@ -253,14 +248,13 @@ def save_as_csv_p3(b, n, filename, cir_el_extended, cir_val_extended,
         | n: # of nodes
         | filename: string with the filename (incluiding the path)
     """
-    # Sup .tr
     header = zl2.build_csv_header("t", b, n)
     with open(filename, 'w') as file:
         print(header, file=file)
-        # Get the indices of the elements corresponding to the sources.
-        # The freq parameter cannot be 0 this is why we choose cir_tr[0].
         t = hasiera
-        while t < amaiera:
+        num_steps = int(round((amaiera - hasiera) / pausua)) + 1
+        for i in range(num_steps):
+            t = hasiera + i * pausua
             if a == ".tr":
                 m = zl2.op_tr(b, cir_el_extended, cir_val_extended,
                               cir_ctr_extended, t)
@@ -276,82 +270,6 @@ def save_as_csv_p3(b, n, filename, cir_el_extended, cir_val_extended,
                 b, cir_el_extended)
             sol = Newton_Raphson(M, N, Us, A, At, n, b, cir_val_extended,
                                  diodo_lista, transistore_lista)
-            sol = np.insert(sol, 0, t)
-            # sol to csv
+            sol = np.insert(sol, 0, t)            
             sol_csv = ','.join(['%.9f' % num for num in sol])
             print(sol_csv, file=file)
-            t = t + pausua
-
-
-"""
-https://stackoverflow.com/questions/419163/what-does-if-name-main-do
-"""
-if __name__ == "__main__":
-    #  start = time.perf_counter()
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
-    else:
-        filename = "cirs/all/1_zlel_serial_YI_VI.cir"
-
-    cir_el, cir_nd, cir_val, cir_ctr = zl1.cir_parser(filename)
-    modified_results = zl1.modify_function(cir_el, cir_nd, cir_val, cir_ctr)
-    cir_el_extended = np.array(modified_results[0])
-    cir_nd_extended = np.array(modified_results[1])
-    cir_ctr_extended = np.array(modified_results[3])
-    cir_val_extended = np.array(modified_results[2])
-
-    nodes = zl1.get_nodes(cir_nd)
-    b = zl1.get_branches(cir_el)
-    n = zl1.get_number_of_nodes(nodes)
-    el_num = zl1.get_elements(cir_el)
-
-    incidence_matrix = zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended)
-    iraulia = zl2.get_iraulia(incidence_matrix)
-
-    "INTZIDENTZIA MATRIZE MURRIZTUA"
-
-    A = zl1.get_incidence_murriztua(incidence_matrix, n)
-
-    "Intzidentzia matrize murriztuaren iraulia"
-
-    At = zl2.get_iraulia(A)
-
-    "PRAKTIKA HONETAKO FUNTZIOEN BALIOAK LORTU"
-
-    m = zl2.getMatrixes(b, cir_el_extended, cir_val_extended, cir_ctr_extended)
-    M = m[0]
-    N = m[1]
-    Us = m[2]
-    diodo_lista, transistore_lista = elementu_ezlinealak(b, cir_el_extended)
-    sol = Newton_Raphson(M, N, Us, A, At, n, b, cir_val_extended,
-                         diodo_lista, transistore_lista)
-    "Simulazioak"
-    sorgailua, hasiera, amaiera, pausua, a, pr = zl2.tr_dc_parametroak(
-        filename
-    )
-
-    if pr == ".pr":
-        zl1.print_cir_info(
-            cir_el_extended, cir_nd_extended, b, n, nodes, el_num
-        )
-        print("\nIncidence Matrix:")
-        print(zl1.get_incidence_matrix(n, b, nodes, cir_nd_extended))
-        zl2.print_solution(sol, b, n)
-
-    # Definir archivo de salida
-
-    if a == ".tr" or a == ".dc":
-        # Ejecutar simulación y guardar resultados en CSV
-        output_csv = "resultado.csv"
-        save_as_csv_p3(
-            b, n, output_csv, cir_el_extended, cir_val_extended,
-            cir_ctr_extended, A, At, cir_nd, cir_nd_extended,
-            incidence_matrix, nodes, a, hasiera, amaiera, pausua, sorgailua
-            )
-
-        # Graficar resultado de la simulación
-        zl2.plot_from_cvs(output_csv, "t", "e1", "Voltaje en nodo 1")
-
-#    end = time.perf_counter()
-#    print ("Elapsed time: ")
-#    print(end - start) # Time in seconds

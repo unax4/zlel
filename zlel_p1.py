@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 .. module:: zlel_main.py
-    :synopsis:
+    :synopsis: Zirkuituaren adarrak, nodoak, aldagaiak eta
+               intzidentzia matrizea lortzeko modulua.
 
-.. moduleauthor:: YOUR NAME AND E-MAIL
+.. moduleauthor:: Aitor Lavin (aitorlavin02@gmail.com)
+                  Unax Arregi (arregiunax@gmail.com)
 
 
 """
@@ -114,10 +116,11 @@ def cir_parser(filename):
 
 def modify_function(cir_el, cir_nd, cir_val, cir_ctr):
     """
+
     Funtzio honek aurretik sortutako cir_el, cir_nd... hartzen
     ditu eta array-a luzatzen du q edo a-ren arabera.
 
-    Parameters
+    Args
     ----------
     cir_el : np array of strings with the elements to parse. size(1,b)
     cir_nd : np array with the nodes to the circuit. size(b,4)
@@ -163,9 +166,10 @@ def modify_function(cir_el, cir_nd, cir_val, cir_ctr):
 
 def get_branches(cir_el):
     """
+
     Gure zirkuituaren adar kopurua ematen du.
 
-    Parameters
+    Args
     ----------
     cir_el : np array-a gure zirkuituko elementuen lista
 
@@ -186,15 +190,16 @@ def get_branches(cir_el):
 
 def get_nodes(cir_nd):
     """
+
     Zirkuituko nodoen lista bueltatzen du.
 
-    Parameters
+    Args
     ----------
     cir_nd : np array with the nodes to the circuit. size(b,4)
 
     Returns
     -------
-    nodes : np array-a zirkuituko nodoekin.
+    valid_nodes : np array-a zirkuituko nodoekin.
 
     """
     all_nodes = np.unique(cir_nd)
@@ -208,6 +213,7 @@ def get_nodes(cir_nd):
 
 def get_number_of_nodes(nodes):
     """
+
     Nodo kopurua ematen du.
 
     Parameters
@@ -225,6 +231,7 @@ def get_number_of_nodes(nodes):
 
 def get_elements(cir_el):
     """
+
     Zirkuituko elementu kopurua ematen digu.
 
     Parameters
@@ -242,6 +249,7 @@ def get_elements(cir_el):
 
 def get_incidence_matrix(n, b, nodes, cir_nd_extended):
     """
+
     Funtzio honek zirkuituaren intzidentzia matrizea sortzen du.
 
     Parameters
@@ -265,11 +273,9 @@ def get_incidence_matrix(n, b, nodes, cir_nd_extended):
     return incidence_matrix
 
 
-"INTZIDENTZIA MATRIZE MURRIZTUA"
-
-
 def get_incidence_murriztua(incidence_matrix, n):
     """
+
    Intzidentzia matrize murriztua lortzen du.
 
    Parameters
@@ -287,6 +293,7 @@ def get_incidence_murriztua(incidence_matrix, n):
 
 def branchZerrenda(nodoa, cir_el_extended, cir_nd_extended):
     """
+
     Zirkuituaren adarren zerrenda ematen du.
 
     Parameters
@@ -311,6 +318,7 @@ def branchZerrenda(nodoa, cir_el_extended, cir_nd_extended):
 def erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
              cir_val_extended, incidence_matrix, nodes, b):
     """
+
     5 errore posible ezberdinen artetik zein den bueltatuko duen funtzioa da.
 
     Parameters
@@ -433,56 +441,19 @@ def print_cir_info(cir_el, cir_nd, b, n, nodes, el_num):
     print("\n" + str(b) + " Branches: ")
 
     for i in range(1, b+1):
-        indent = 12  # Number of blanks for indent
+        indent = 12
         string = ("\t" + str(i) + ". branch:\t" +
                   str(cir_el[i-1]) + "i".rjust(indent - len(cir_el[i-1])) +
                   str(i) + "v".rjust(indent - len(str(i))) + str(i) +
                   " = e" + str(cir_nd[i-1, 0]) +
                   " - e" + str(cir_nd[i-1, 1]))
         print(string)
-
-    # Variable info
+    
     print("\n" + str(2*b + (n-1)) + " variables: ")
-    # print all the nodes but the first(0 because is sorted)
     for i in nodes[1:]:
         print("e"+str(i)+", ", end="", flush=True)
     for i in range(b):
-        print("i"+str(i+1)+", ", end="", flush=True)
-    # print all the branches but the last to close it properly
-    # It works because the minuimum amount of branches in a circuit must be 2.
+        print("i"+str(i+1)+", ", end="", flush=True)    
     for i in range(b-1):
         print("v"+str(i+1)+", ", end="", flush=True)
     print("v"+str(b))
-
-    # IT IS RECOMMENDED TO USE THIS FUNCTION WITH NO MODIFICATION.
-
-
-"""
-https://stackoverflow.com/questions/419163/what-does-if-name-main-do
-https://stackoverflow.com/questions/19747371/
-python-exit-commands-why-so-many-and-when-should-each-be-used
-"""
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
-    else:
-        filename = "C:/Users/usuario/Desktop/3maila/Zlel/Aitor_Lavin.Unax_Arregi/cirs/all/0_zlel_OPAMP.cir"
-
-    cir_el, cir_nd, cir_val, cir_ctr = cir_parser(filename)
-    modified_results = modify_function(cir_el, cir_nd, cir_val, cir_ctr)
-    cir_el_extended = np.array(modified_results[0])
-    cir_nd_extended = np.array(modified_results[1])
-    cir_ctr_extended = np.array(modified_results[3])
-    cir_val_extended = np.array(modified_results[2])
-    nodes = get_nodes(cir_nd)
-    b = get_branches(cir_el)
-    n = get_number_of_nodes(nodes)
-    el_num = get_elements(cir_el)
-    incidence_matrix = get_incidence_matrix(n, b, nodes, cir_nd_extended)
-    erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
-             cir_val_extended, incidence_matrix, nodes, b)
-    print_cir_info(cir_el_extended, cir_nd_extended, b, n, nodes, el_num)
-    print("\nIncidence Matrix:")
-    print(incidence_matrix)
-    erroreak(cir_nd_extended, cir_el_extended, cir_ctr_extended,
-             cir_val_extended, incidence_matrix, nodes, b)
